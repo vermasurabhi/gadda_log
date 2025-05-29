@@ -346,9 +346,13 @@ timestamp: Auto-generated if not provided
 
         // Handle API requests
         function handleApiRequest() {
+            console.log('🔍 [DASHBOARD DEBUG] Checking URL params...');
             const urlParams = new URLSearchParams(window.location.search);
+            console.log('🔍 [DASHBOARD DEBUG] URL params:', Object.fromEntries(urlParams));
             
             if (urlParams.get('action') === 'log') {
+                console.log('🔍 [DASHBOARD DEBUG] Log action detected!');
+                
                 // Extract all parameters
                 const service = urlParams.get('service') || '';
                 const message = urlParams.get('message') || 'Unknown error occurred';
@@ -356,15 +360,21 @@ timestamp: Auto-generated if not provided
                 const type = urlParams.get('type') || 'error';
                 const customTimestamp = urlParams.get('timestamp'); // Optional custom timestamp
                 
+                console.log('🔍 [DASHBOARD DEBUG] Extracted params:', { service, message, details, type });
+                
                 addLog(service, message, details, type, customTimestamp);
                 
                 // Clear URL parameters after processing
                 window.history.replaceState({}, document.title, window.location.pathname);
+            } else {
+                console.log('🔍 [DASHBOARD DEBUG] No log action found');
             }
         }
 
         // Add a new log entry
         async function addLog(service, message, details, type = 'error', customTimestamp = null) {
+            console.log('📝 [DASHBOARD DEBUG] addLog called with:', { service, message, details, type });
+            
             const log = {
                 id: Date.now() + Math.random(), // Unique ID
                 timestamp: customTimestamp || new Date().toISOString(),
@@ -374,12 +384,22 @@ timestamp: Auto-generated if not provided
                 type: type || 'error'
             };
             
+            console.log('📝 [DASHBOARD DEBUG] Created log object:', log);
+            
             logs.unshift(log); // Add to beginning of array
+            console.log('📝 [DASHBOARD DEBUG] Total logs in memory:', logs.length);
+            
             displayLogs();
             updateStats();
             
             // Save to database
-            await saveLogToDatabase(log);
+            console.log('📝 [DASHBOARD DEBUG] Attempting to save to database...');
+            try {
+                await saveLogToDatabase(log);
+                console.log('📝 [DASHBOARD DEBUG] Save to database successful!');
+            } catch (error) {
+                console.error('📝 [DASHBOARD DEBUG] Save to database failed:', error);
+            }
             
             // Show success message for API calls
             if (window.location.search.includes('action=log')) {
