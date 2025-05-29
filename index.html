@@ -320,9 +320,9 @@ timestamp: Auto-generated if not provided
             
             // Option 3: JSONBin.io - Free tier: 50K API calls/month
             jsonbin: {
-                enabled: true, // Default enabled for demo
-                apiKey: "$2a$10$8G6k9G6e9IsJmnEYC0iEouPvSn4HuLol8bcGsIv/d2DedZqEmCAXm", // Paste your Master Key from JSONBin dashboard
-                binId: "6837e0e88960c979a5a2819a" // Paste your Bin ID from the URL
+                enabled: true,
+                apiKey: "PASTE_YOUR_REAL_MASTER_KEY_HERE", // ⚠️ REPLACE with your actual Master Key from JSONBin dashboard
+                binId: "6837e0e88960c979a5a2819a" // Your Bin ID (correct)
             },
             
             // Option 4: Airtable - Free tier: 1,200 records per base
@@ -429,17 +429,55 @@ timestamp: Auto-generated if not provided
 
         // JSONBin.io implementation (Easiest to setup)
         async function saveToJSONBin(log) {
-            const allLogs = [...logs];
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.jsonbin.binId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': DB_CONFIG.jsonbin.apiKey
-                },
-                body: JSON.stringify({ logs: allLogs })
-            });
+            console.log('💾 [DEBUG] Saving to JSONBin:', log);
             
-            if (!response.ok) throw new Error('JSONBin save failed');
+            try {
+                // First, get existing logs from JSONBin
+                console.log('💾 [DEBUG] Fetching existing logs...');
+                const getResponse = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.jsonbin.binId}/latest`, {
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.jsonbin.apiKey
+                    }
+                });
+                
+                let existingLogs = [];
+                if (getResponse.ok) {
+                    const existingData = await getResponse.json();
+                    existingLogs = existingData.record?.logs || [];
+                    console.log('💾 [DEBUG] Found existing logs:', existingLogs.length);
+                } else {
+                    console.log('💾 [DEBUG] No existing logs found, starting fresh');
+                }
+                
+                // Add the new log to existing logs
+                const allLogs = [log, ...existingLogs]; // New log first
+                console.log('💾 [DEBUG] Total logs to save:', allLogs.length);
+                
+                // Save merged logs back to JSONBin
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.jsonbin.binId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': DB_CONFIG.jsonbin.apiKey
+                    },
+                    body: JSON.stringify({ logs: allLogs })
+                });
+                
+                console.log('💾 [DEBUG] JSONBin save response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('💾 [DEBUG] JSONBin error response:', errorText);
+                    throw new Error(`JSONBin save failed: ${response.status} - ${errorText}`);
+                }
+                
+                const result = await response.json();
+                console.log('💾 [DEBUG] JSONBin save success:', result);
+                
+            } catch (error) {
+                console.error('💾 [DEBUG] JSONBin save error:', error);
+                throw error;
+            }
         }
 
         async function loadFromJSONBin() {
