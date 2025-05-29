@@ -500,18 +500,27 @@ timestamp: Auto-generated if not provided
             }
         }
 
-        async function loadFromJSONBin() {
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.jsonbin.binId}/latest`, {
-                headers: {
-                    'X-Master-Key': DB_CONFIG.jsonbin.apiKey
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                logs = data.record.logs || [];
+async function loadFromJSONBin() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.jsonbin.binId}/latest`, {
+            headers: {
+                'X-Master-Key': DB_CONFIG.jsonbin.apiKey
             }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // Filter out null entries that are causing issues
+            logs = (data.record?.logs || []).filter(log => log !== null && log !== undefined);
+        } else {
+            throw new Error(`JSONBin load failed: ${response.status}`);
         }
+    } catch (error) {
+        console.error('Failed to load from database:', error);
+        logs = []; // Fallback to empty array
+        throw error;
+    }
+}
 
         // Firebase Realtime Database implementation
         async function saveToFirebase(log) {
